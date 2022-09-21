@@ -12,7 +12,6 @@ using System.Threading;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using Accord.Math;
-using TOtracing;
 
 // In order to load the result of this wizard, you will also need to
 // add the output bin/ folder of this project to the list of loaded
@@ -60,6 +59,14 @@ namespace TOtracing
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            string path = "SenDire";
+
+            var matrix = MatlabRunner.ReadMatrix(print: false);
+
+            double a = 5 + 3;
+
+
+
         }
 
         /// <summary>
@@ -86,4 +93,6 @@ namespace TOtracing
             get { return new Guid("02fa0bc7-5c2a-48c6-8513-1a9cb0ee7f44"); }
         }
     }
+
+  
 }
