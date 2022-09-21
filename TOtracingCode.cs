@@ -2,6 +2,17 @@
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
+using Grasshopper;
+using Grasshopper.Kernel.Data;
+using System.Linq;
+using System.IO;
+using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Threading;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using Accord.Math;
+using TOtracing;
 
 // In order to load the result of this wizard, you will also need to
 // add the output bin/ folder of this project to the list of loaded
@@ -31,6 +42,7 @@ namespace TOtracing
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddTextParameter("SensMatDir", "SensMatDir", "Senstivity Matrix Directory", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -38,6 +50,7 @@ namespace TOtracing
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddGeometryParameter("PToutput", "PToutput", "Particle tracing output", GH_ParamAccess.item);
         }
 
         /// <summary>
