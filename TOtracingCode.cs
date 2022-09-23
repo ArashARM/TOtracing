@@ -41,7 +41,8 @@ namespace TOtracing
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("SensMatDir", "SensMatDir", "Senstivity Matrix Directory", GH_ParamAccess.item);
+            //pManager.AddTextParameter("SensMatDir", "SensMatDir", "Senstivity Matrix Directory", GH_ParamAccess.item);
+            pManager.AddNumberParameter("INT","Int","INt", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -49,7 +50,9 @@ namespace TOtracing
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGeometryParameter("PToutput", "PToutput", "Particle tracing output", GH_ParamAccess.item);
+            pManager.AddCurveParameter("PToutput", "PToutput", "Particle tracing output", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Senvval", "Senvval", "Senvval", GH_ParamAccess.list);
+            pManager.AddPointParameter("Pts", "Pts", "Pts", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -59,11 +62,33 @@ namespace TOtracing
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            string path = "SenDire";
+            //string path = "SenDire";
+            double sss = 0;
+            var MatrixS = MatlabRunner.ReadMatrix(print: false);
+            PtFunctions.PrintMatrix2(MatrixS);
+            DA.GetData(0, ref sss);
 
-            var matrix = MatlabRunner.ReadMatrix(print: false);
+            List<Tuple<Tuple<double, double>, Point3d>> MatInfo = PtFunctions.MatToLoc2D(MatrixS, out List<Point3d> AllPts);
 
-            double a = 5 + 3;
+            List<Tuple<double, Point3d>> Sens = new List<Tuple<double, Point3d>>();
+
+            List<double> SensVa = new List<double>();
+            for (int i = 0; i < MatrixS.GetLength(0); i++)
+            {
+                for (int j = 0; j < MatrixS.GetLength(1); j++)
+                {
+                    SensVa.Add(Math.Round(MatrixS[i, j],3));
+                }
+
+            }
+            Point3d Spt = new Point3d(0, 99, 0);
+            List<NurbsCurve> CCuve = PtFunctions.ParTrace(MatrixS, MatInfo, Spt, 1, Math.Sqrt(2), out int[,] TraceMat);
+            PtFunctions.PrintMatrix(TraceMat);
+            DA.SetDataList(0, CCuve);
+            DA.SetDataList(1, SensVa);
+            DA.SetDataList(2, AllPts);
+            
+
 
 
 

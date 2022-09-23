@@ -31,7 +31,7 @@ namespace TOtracing
                 {
 
                     Tuple<double, double> MatInd = new Tuple<double, double>(i, j);
-                    Point3d MatLoc = new Point3d(j, (Yrenge - 1) - i, 0);
+                    Point3d MatLoc = new Point3d(j, (Xrange - 1) - i, 0);
 
                     Tuple<Tuple<double, double>, Point3d> Elementpoint = new Tuple<Tuple<double, double>, Point3d>(MatInd, MatLoc);
 
@@ -81,6 +81,8 @@ namespace TOtracing
 
             for (int i = 0; i < AllPts.Count; i++)
             {
+                if (CNPts.Equals(AllPts[i]))
+                    continue;
                 if (CNPts.DistanceTo(AllPts[i]) <= Maxdis)
                     NeighbourPts.Add(AllPts[i]);
             }
@@ -198,15 +200,19 @@ namespace TOtracing
 
                 TraceMatrix[(int)PtSourceIND1.Item1, (int)PtSourceIND1.Item2] = 1;
 
+                Tuple<double, double> PtSourceIND3 = FindSenMatIndex(C1.PointAtEnd, MatINFO);
+
+                TraceMatrix[(int)PtSourceIND3.Item1, (int)PtSourceIND3.Item2] = 1;
+
                 for (int i = 0; i < AllPts.Count; i++)
                 {
                     C1.ClosestPoint(AllPts[i], out double t);
                     var Pt000 = C1.PointAt(t);
                     if (Pt000.DistanceTo(AllPts[i]) <= Radii)
                     {
-                        Vector3d TestVec = C1.PointAtEnd - AllPts[i];
+                        Vector3d TestVec = AllPts[i]-Pt000;
                         double Angle = Vector3d.VectorAngle(TestVec, C1.TangentAtEnd) * (180 / Math.PI);
-                        if (Angle>=90)
+                        if (Angle-90<0.001 && Angle - 90 >= 0)
                         {
                             Tuple<double, double> PtSourceIND2 = FindSenMatIndex(AllPts[i], MatINFO);
                             TraceMatrix[(int)PtSourceIND2.Item1, (int)PtSourceIND2.Item2] = 1;
@@ -222,6 +228,36 @@ namespace TOtracing
             return CoreCurves;
         }
 
+        public static void PrintMatrix(int[,] TrMatrix)
+        {
+            int rowLength = TrMatrix.GetLength(0);
+            int colLength = TrMatrix.GetLength(1);
 
+            for (int i = 0; i < rowLength; i++)
+            {
+                for (int j = 0; j < colLength; j++)
+                {
+                    Console.Write(string.Format("{0} ", TrMatrix[i, j]));
+                }
+                Console.Write(Environment.NewLine + Environment.NewLine);
+            }
+            Console.ReadLine();
+        }
+
+        public static void PrintMatrix2(double[,] TrMatrix)
+        {
+            int rowLength = TrMatrix.GetLength(0);
+            int colLength = TrMatrix.GetLength(1);
+
+            for (int i = 0; i < rowLength; i++)
+            {
+                for (int j = 0; j < colLength; j++)
+                {
+                    Console.Write(string.Format("{0} ", TrMatrix[i, j]));
+                }
+                Console.Write(Environment.NewLine + Environment.NewLine);
+            }
+            Console.ReadLine();
+        }
     }
 }
