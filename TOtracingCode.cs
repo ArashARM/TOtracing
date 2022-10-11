@@ -51,8 +51,8 @@ namespace TOtracing
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddCurveParameter("PToutput", "PToutput", "Particle tracing output", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Senvval", "Senvval", "Senvval", GH_ParamAccess.list);
-            pManager.AddPointParameter("Pts", "Pts", "Pts", GH_ParamAccess.list);
+            //pManager.AddNumberParameter("Senvval", "Senvval", "Senvval", GH_ParamAccess.list);
+            //pManager.AddPointParameter("Pts", "Pts", "Pts", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -63,6 +63,7 @@ namespace TOtracing
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             //string path = "SenDire";
+            List<NurbsCurve> CorCVS = new List<NurbsCurve>();
             double sss = 0;
             var MatrixS = MatlabRunner.ReadMatrix(print: false);
             PtFunctions.PrintMatrix2(MatrixS);
@@ -70,26 +71,42 @@ namespace TOtracing
 
             List<Tuple<Tuple<double, double>, Point3d>> MatInfo = PtFunctions.MatToLoc2D(MatrixS, out List<Point3d> AllPts);
 
-            List<Tuple<double, Point3d>> Sens = new List<Tuple<double, Point3d>>();
-
-            List<double> SensVa = new List<double>();
-            for (int i = 0; i < MatrixS.GetLength(0); i++)
+            Point3d Spt = new Point3d(0.5, 99.5, 0);
+            int[,] TraceMatrix = new int[MatrixS.GetLength(0), MatrixS.GetLength(1)];
+            double V = 0;
+            int counter = 0;
+            //List<NurbsCurve> CCuve = PtFunctions.ParTrace(MatrixS, MatInfo, Spt, TraceMatrix, 1, Math.Sqrt(2));
+            while (true)
             {
-                for (int j = 0; j < MatrixS.GetLength(1); j++)
+                //if (counter > 2)
+                //    break;
+                //if (counter != 0)
+                //{
+                //    Spt = new Point3d(1, 0, 0);
+                //    //Spt = PtFunctions.ExplorTracPt(MatInfo, MatrixS, TraceMatrix, Math.Sqrt(2));
+                //}
+
+                //if (counter == 1)
+                //{
+                //    Spt = new Point3d(0, 0, 0);
+                //    //Spt = PtFunctions.ExplorTracPt(MatInfo, MatrixS, TraceMatrix, Math.Sqrt(2));
+                //}
+                if (counter != 0)
                 {
-                    SensVa.Add(Math.Round(MatrixS[i, j],3));
+                    //Spt = new Point3d(299, 1, 0);
+                    Spt = PtFunctions.ExplorTracPt(MatInfo, MatrixS, TraceMatrix, Math.Sqrt(2));
                 }
+                List<NurbsCurve> CCuve = PtFunctions.ParTrace(MatrixS, MatInfo, Spt, TraceMatrix, 1, Math.Sqrt(2), AllPts);
+                V = PtFunctions.ComputeVol2d(TraceMatrix);
 
+                CorCVS.AddRange(CCuve);
+                if (V >= 3000)
+                    break;
+                counter++;
             }
-            Point3d Spt = new Point3d(0, 99, 0);
-            List<NurbsCurve> CCuve = PtFunctions.ParTrace(MatrixS, MatInfo, Spt, 1, Math.Sqrt(2), out int[,] TraceMat);
-            PtFunctions.PrintMatrix(TraceMat);
-            DA.SetDataList(0, CCuve);
-            DA.SetDataList(1, SensVa);
-            DA.SetDataList(2, AllPts);
-            
 
 
+            DA.SetDataList(0, CorCVS);
 
 
         }
