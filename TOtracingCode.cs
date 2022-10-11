@@ -75,6 +75,7 @@ namespace TOtracing
             int[,] TraceMatrix = new int[MatrixS.GetLength(0), MatrixS.GetLength(1)];
             double V = 0;
             int counter = 0;
+            List<NurbsCurve> CurveList = new List<NurbsCurve>();
             //List<NurbsCurve> CCuve = PtFunctions.ParTrace(MatrixS, MatInfo, Spt, TraceMatrix, 1, Math.Sqrt(2));
             while (true)
             {
@@ -100,13 +101,22 @@ namespace TOtracing
                 V = PtFunctions.ComputeVol2d(TraceMatrix);
 
                 CorCVS.AddRange(CCuve);
-                if (V >= 3000)
+                Interval inter = new Interval(0, 1);
+                foreach (var curve in Curve.JoinCurves(CorCVS))
+                {
+                   var A = curve.ToNurbsCurve();
+                    A.Domain = inter;
+                    CurveList.Add(A);
+                }
+
+                NurbsCurve CCC = Curve.JoinCurves(CorCVS)[0].ToNurbsCurve();
+                if (V >=10000)
                     break;
                 counter++;
             }
 
 
-            DA.SetDataList(0, CorCVS);
+            DA.SetDataList(0, CurveList);
 
 
         }

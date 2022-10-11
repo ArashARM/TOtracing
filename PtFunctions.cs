@@ -32,7 +32,7 @@ namespace TOtracing
 
                     Tuple<double, double> MatInd = new Tuple<double, double>(i, j);
                     Point3d MatLoc = new Point3d(j, (Xrange - 1) - i, 0);
-                    MatLoc = MatLoc + new Point3d(0.5, 0.5, 0); 
+                    MatLoc = MatLoc + new Point3d(0.5, 0.5, 0);
                     Tuple<Tuple<double, double>, Point3d> Elementpoint = new Tuple<Tuple<double, double>, Point3d>(MatInd, MatLoc);
 
                     PTts.Add(MatLoc);
@@ -90,27 +90,29 @@ namespace TOtracing
             return NeighbourPts;
         }
 
-        public static List<Point3d> Exploreneighbours(Point3d CNPts, double MaxX,double MaxY,double MaxZ)
+        public static List<Point3d> Exploreneighbours(Point3d CNPts, double MaxX, double MaxY, double MaxZ)
         {
 
             List<Point3d> NeighbourPts = new List<Point3d>();
 
-            NeighbourPts.Add( new Point3d(CNPts.X + 1, CNPts.Y, CNPts.Z));
-            NeighbourPts.Add( new Point3d(CNPts.X - 1, CNPts.Y, CNPts.Z));
-            NeighbourPts.Add( new Point3d(CNPts.X , CNPts.Y+1, CNPts.Z));
-            NeighbourPts.Add(new Point3d(CNPts.X , CNPts.Y-1, CNPts.Z));
-            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y+1, CNPts.Z));
-            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y-1, CNPts.Z));
-            NeighbourPts.Add(new Point3d(CNPts.X-1, CNPts.Y + 1, CNPts.Z));
-            NeighbourPts.Add(new Point3d(CNPts.X-1, CNPts.Y - 1, CNPts.Z));
-            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y, CNPts.Z+1));
-            NeighbourPts.Add(new Point3d(CNPts.X - 1, CNPts.Y, CNPts.Z+1));
-            NeighbourPts.Add(new Point3d(CNPts.X, CNPts.Y + 1, CNPts.Z+1));
-            NeighbourPts.Add(new Point3d(CNPts.X, CNPts.Y - 1, CNPts.Z+1));
-            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y + 1, CNPts.Z-1));
-            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y - 1, CNPts.Z-1));
-            NeighbourPts.Add(new Point3d(CNPts.X - 1, CNPts.Y + 1, CNPts.Z-1));
-            NeighbourPts.Add(new Point3d(CNPts.X - 1, CNPts.Y - 1, CNPts.Z-1));
+            //Add procedural ring neighbour finding
+
+            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y, CNPts.Z));
+            NeighbourPts.Add(new Point3d(CNPts.X - 1, CNPts.Y, CNPts.Z));
+            NeighbourPts.Add(new Point3d(CNPts.X, CNPts.Y + 1, CNPts.Z));
+            NeighbourPts.Add(new Point3d(CNPts.X, CNPts.Y - 1, CNPts.Z));
+            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y + 1, CNPts.Z));
+            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y - 1, CNPts.Z));
+            NeighbourPts.Add(new Point3d(CNPts.X - 1, CNPts.Y + 1, CNPts.Z));
+            NeighbourPts.Add(new Point3d(CNPts.X - 1, CNPts.Y - 1, CNPts.Z));
+            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y, CNPts.Z + 1));
+            NeighbourPts.Add(new Point3d(CNPts.X - 1, CNPts.Y, CNPts.Z + 1));
+            NeighbourPts.Add(new Point3d(CNPts.X, CNPts.Y + 1, CNPts.Z + 1));
+            NeighbourPts.Add(new Point3d(CNPts.X, CNPts.Y - 1, CNPts.Z + 1));
+            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y + 1, CNPts.Z - 1));
+            NeighbourPts.Add(new Point3d(CNPts.X + 1, CNPts.Y - 1, CNPts.Z - 1));
+            NeighbourPts.Add(new Point3d(CNPts.X - 1, CNPts.Y + 1, CNPts.Z - 1));
+            NeighbourPts.Add(new Point3d(CNPts.X - 1, CNPts.Y - 1, CNPts.Z - 1));
 
             while (true)
             {
@@ -118,12 +120,12 @@ namespace TOtracing
 
                 for (int i = 0; i < NeighbourPts.Count; i++)
                 {
-                    if(NeighbourPts[i].X<0 || NeighbourPts[i].X > MaxY|| NeighbourPts[i].Y < 0 || NeighbourPts[i].Y > MaxX || NeighbourPts[i].Z < 0 || NeighbourPts[i].Z > MaxZ)
+                    if (NeighbourPts[i].X < 0 || NeighbourPts[i].X > MaxY || NeighbourPts[i].Y < 0 || NeighbourPts[i].Y > MaxX || NeighbourPts[i].Z < 0 || NeighbourPts[i].Z > MaxZ)
                     {
                         NeighbourPts.RemoveAt(i);
                         found = false;
                         break;
-                    }    
+                    }
                 }
 
                 if (found)
@@ -136,7 +138,7 @@ namespace TOtracing
         public static double ComputeCostForNeighbours(Point3d Pt0, Vector3d PreDir, Point3d Pt1, double[,] SensMatrix, List<Tuple<Tuple<double, double>, Point3d>> MatINFO, int[,] TraceMatrix)
         {
             double Cost = 0;
-            double alpha=1;
+            double alpha = 1;
             double betha;
 
             //Avoid backword move
@@ -144,18 +146,18 @@ namespace TOtracing
             {
                 Vector3d TrVec = Pt1 - Pt0;
                 double VecAng = Vector3d.VectorAngle(PreDir, TrVec) * (180 / Math.PI);
-                if(VecAng>=90)
+                if (VecAng >= 90)
                 {
                     return Cost;
                 }
 
                 if (VecAng < 90 && VecAng > 40)
                 {
-                    alpha=0.8;
+                    alpha = 0.8;
                 }
-                if (VecAng < 40 )
+                if (VecAng < 40)
                 {
-                    alpha =1;
+                    alpha = 1;
                 }
             }
 
@@ -165,7 +167,7 @@ namespace TOtracing
             {
                 Cost = 0;
                 return Cost;
-            }    
+            }
 
 
             double Sen = SensMatrix[(int)PtIndex.Item1, (int)PtIndex.Item2];
@@ -183,17 +185,19 @@ namespace TOtracing
 
         public static Tuple<double, double> FindSenMatIndex(Point3d Pt, double[,] SensMatrix)
         {
-           
+
             Point3d PP = new Point3d(Pt.X - 0.5, Pt.Y - 0.5, 0);
             double j = PP.X;
-            double i = SensMatrix.GetLength(0)-1- PP.Y;
+            double i = SensMatrix.GetLength(0) - 1 - PP.Y;
 
-            Tuple<double, double> Index = new Tuple<double, double>(i,j);
-
-            return Index;
+            Tuple<double, double> Index = new Tuple<double, double>(i, j);
+            if (i < 0 || i >= SensMatrix.GetLength(0) || j < 0 || j >= SensMatrix.GetLength(1))
+                return null;
+            else
+                return Index;
         }
 
-        public static List<NurbsCurve> ParTrace(double[,] SensMatrix, List<Tuple<Tuple<double, double>, Point3d>> MatINFO, Point3d SourcePt, int[,] TraceMatrix, double Radii, double MaxDis,List<Point3d> AllPts)
+        public static List<NurbsCurve> ParTrace(double[,] SensMatrix, List<Tuple<Tuple<double, double>, Point3d>> MatINFO, Point3d SourcePt, int[,] TraceMatrix, double Radii, double MaxDis, List<Point3d> AllPts)
         {
 
             List<NurbsCurve> CoreCurves = new List<NurbsCurve>();
@@ -210,7 +214,7 @@ namespace TOtracing
 
                 List<Tuple<Point3d, double>> NeighbourCost = new List<Tuple<Point3d, double>>();
                 double SumCost = 0;
-                var NeiPts = Exploreneighbours(Ps, SensMatrix.GetLength(0), SensMatrix.GetLength(1),0);
+                var NeiPts = Exploreneighbours(Ps, SensMatrix.GetLength(0), SensMatrix.GetLength(1), 0);
                 for (int i = 0; i < NeiPts.Count; i++)
                 {
                     double Cost = ComputeCostForNeighbours(Ps, PreDir, NeiPts[i], SensMatrix, MatINFO, TraceMatrix);
@@ -240,17 +244,34 @@ namespace TOtracing
 
                 TraceMatrix[(int)PtSourceIND3.Item1, (int)PtSourceIND3.Item2] = 1;
 
-                for (int i = 0; i < AllPts.Count; i++)
+                var LMatR = new List<Point3d>();
+                int numi = 5, numj = 5;
+                var Pst = C1.PointAtStart;
+                for (int i = 0; i < numi; i++)
                 {
-                    C1.ClosestPoint(AllPts[i], out double t);
-                    var Pt000 = C1.PointAt(t);
-                    if (Pt000.DistanceTo(AllPts[i]) <= Radii)
+                    for (int j = 0; j < numj; j++)
                     {
-                        Vector3d TestVec = AllPts[i]-Pt000;
+
+                        if (Pst.X - 2 + i < 0 || Pst.Y - 2 + j < 0 || Pst.X - 2 + i > SensMatrix.GetLength(1) || Pst.Y - 2 + j > SensMatrix.GetLength(0))
+                            continue;
+                        else
+                            LMatR.Add(new Point3d(Pst.X - 2 + i, Pst.Y - 2 + j, Pst.Z));
+
+                    }
+
+                }
+
+                for (int i = 0; i < LMatR.Count; i++)
+                {
+                    C1.ClosestPoint(LMatR[i], out double t);
+                    var Pt000 = C1.PointAt(t);
+                    if (Pt000.DistanceTo(LMatR[i]) <= Radii)
+                    {
+                        Vector3d TestVec = LMatR[i] - Pt000;
                         double Angle = Vector3d.VectorAngle(TestVec, C1.TangentAtEnd) * (180 / Math.PI);
-                        if (Angle-90<0.001 && Angle - 90 >= 0)
+                        if (Angle - 90 < 0.001 && Angle - 90 >= 0)
                         {
-                            Tuple<double, double> PtSourceIND2 = FindSenMatIndex(AllPts[i], SensMatrix);
+                            Tuple<double, double> PtSourceIND2 = FindSenMatIndex(LMatR[i], SensMatrix);
                             TraceMatrix[(int)PtSourceIND2.Item1, (int)PtSourceIND2.Item2] = 1;
                         }
                     }
@@ -261,7 +282,7 @@ namespace TOtracing
 
             }
 
-            
+
             return CoreCurves;
         }
 
@@ -273,10 +294,10 @@ namespace TOtracing
             List<Point3d> RadPtPER = new List<Point3d>();
             for (int i = 1; i < radii; i++)
             {
-                RadPtPER.Add( new Point3d(P1.X + i, P1.Y, P1.Z));
+                RadPtPER.Add(new Point3d(P1.X + i, P1.Y, P1.Z));
                 RadPtPER.Add(new Point3d(P1.X - i, P1.Y, P1.Z));
-                RadPtPER.Add(new Point3d(P1.X , P1.Y + i, P1.Z));
-                RadPtPER.Add(new Point3d(P1.X , P1.Y - i, P1.Z));
+                RadPtPER.Add(new Point3d(P1.X, P1.Y + i, P1.Z));
+                RadPtPER.Add(new Point3d(P1.X, P1.Y - i, P1.Z));
                 RadPtPER.Add(new Point3d(P1.X + i, P1.Y + i, P1.Z));
                 RadPtPER.Add(new Point3d(P1.X + i, P1.Y - i, P1.Z));
                 RadPtPER.Add(new Point3d(P1.X - i, P1.Y + i, P1.Z));
@@ -336,55 +357,74 @@ namespace TOtracing
                         SolidVox++;
                 }
 
-                
+
             }
             return SolidVox;
 
         }
 
-        public static Point3d ExplorTracPt(List<Tuple<Tuple<double, double>, Point3d>> MatInfo, double[,] SensMatrix,int[,] TraceMatrix, double MaxDis)
+        public static Point3d ExplorTracPt(List<NurbsCurve> CorCVS, List<Tuple<Tuple<double, double>, Point3d>> MatInfo, double[,] SensMatrix, int[,] TraceMatrix, double MaxDis)
         {
-            Random random = new Random(); ; 
+            Random random = new Random();
             Point3d Pts = new Point3d();
-            List<Point3d> Allpts = new List<Point3d>();
-            List<Point3d> ACCpt = new List<Point3d>();
-            for (int i = 0; i < MatInfo.Count; i++)
+            double Radii = 1;
+            while (true)
             {
-                Allpts.Add(MatInfo[i].Item2);
-            }
+                int n1 = random.Next(0, CorCVS.Count - 1);
+                double n2 = random.NextDouble();
 
-            for (int i = 0; i < TraceMatrix.GetLength(0); i++)
-            {
-                for (int j = 0; j < TraceMatrix.GetLength(1); j++)
-                {
-                    if (TraceMatrix[i, j] == 1)
-                    {
-                        for (int i1 = 0; i1 < MatInfo.Count; i1++)
-                        {
-                            if((int)MatInfo[i1].Item1.Item1==i && (int)MatInfo[i1].Item1.Item2 == j)
-                            {
-                                double SumCost = 0;
-                                var NeiPts = Exploreneighbours(MatInfo[i1].Item2, SensMatrix.GetLength(0), SensMatrix.GetLength(1), 0);
-                                for (int ii = 0; ii < NeiPts.Count; ii++)
-                                {
-                                    double Cost = ComputeCostForNeighbours(MatInfo[i1].Item2, new Vector3d(), NeiPts[ii], SensMatrix, MatInfo, TraceMatrix);
-                                    SumCost += Cost;
-                                }
+                NurbsCurve CChosen = CorCVS[n1];
+                Point3d PtChosen = new Point3d((Math.Ceiling(CChosen.PointAt(n2).X) + Math.Floor(CChosen.PointAt(n2).X)) / 2,
+                    (Math.Ceiling(CChosen.PointAt(n2).Y) + Math.Floor(CChosen.PointAt(n2).Y)) / 2, (Math.Ceiling(CChosen.PointAt(n2).Z) + Math.Floor(CChosen.PointAt(n2).Z)) / 2);
 
-                                if (SumCost != 0)
-                                    ACCpt.Add(MatInfo[i1].Item2);
+                Line NLine = new Line(PtChosen, CorCVS[n1].TangentAt(n2) * Radii);
+                Vector3d DirVec = new Vector3d(NLine.PointAt(1) - NLine.PointAt(0));
+                var DirvecU = DirVec;
+                var DirvecD = DirVec;
+                // make ıt random for further updates
+                // change this code for 3d topopt
 
-                            }
+                DirvecU.Rotate(Math.PI / 2, Vector3d.ZAxis);
+                DirvecD.Rotate(-Math.PI / 2, Vector3d.ZAxis);
 
-                        }
 
-                    }
-                }
+                var PtU = PtChosen + DirvecU;
+                var PtD = PtChosen + DirvecD;
 
+                var IdU = FindSenMatIndex(PtU, SensMatrix);
+                var IdD = FindSenMatIndex(PtD, SensMatrix);
+
+                //if (IdD == null)
+                //    continue;
+                //else
 
             }
 
-            int randomIndex = random.Next(0, ACCpt.Count-1);
+
+
+            //var LMatR = new List<Point3d>();
+            //int numi = 5, numj = 5;
+            //var Pst = PtChosen;
+            //for (int i = 0; i < numi; i++)
+            //{
+            //    for (int j = 0; j < numj; j++)
+            //    {
+
+            //        if (Pst.X - 2 + i < 0 || Pst.Y - 2 + j < 0 || Pst.X - 2 + i > SensMatrix.GetLength(1) || Pst.Y - 2 + j > SensMatrix.GetLength(0))
+            //            continue;
+            //        else
+            //            LMatR.Add(new Point3d(Pst.X - 2 + i, Pst.Y - 2 + j, Pst.Z));
+
+            //    }
+
+            //}
+
+
+
+
+
+
+            int randomIndex = random.Next(0, ACCpt.Count - 1);
 
             Pts = ACCpt[randomIndex];
             return Pts;
