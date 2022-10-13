@@ -11,7 +11,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
-
+using Extensions;
 
 namespace TOtracing
 {
@@ -120,7 +120,7 @@ namespace TOtracing
 
                 for (int i = 0; i < NeighbourPts.Count; i++)
                 {
-                    if (NeighbourPts[i].X < 0 || NeighbourPts[i].X > MaxY || NeighbourPts[i].Y < 0 || NeighbourPts[i].Y > MaxX || NeighbourPts[i].Z < 0 || NeighbourPts[i].Z > MaxZ)
+                    if (NeighbourPts[i].X < 0 || NeighbourPts[i].X >= MaxY || NeighbourPts[i].Y < 0 || NeighbourPts[i].Y > MaxX || NeighbourPts[i].Z < 0 || NeighbourPts[i].Z > MaxZ)
                     {
                         NeighbourPts.RemoveAt(i);
                         found = false;
@@ -363,7 +363,7 @@ namespace TOtracing
 
         }
 
-        public static Point3d ExplorTracPt(List<NurbsCurve> CorCVS, List<Tuple<Tuple<double, double>, Point3d>> MatInfo, double[,] SensMatrix, int[,] TraceMatrix, double MaxDis)
+        public static Point3d ExplorTracPt(List<NurbsCurve> CorCVS, double[,] SensMatrix, int[,] TraceMatrix, List<Tuple<Tuple<double, double>, Point3d>> MatINFO)
         {
             Random random = new Random();
             Point3d Pts = new Point3d();
@@ -377,7 +377,7 @@ namespace TOtracing
                 Point3d PtChosen = new Point3d((Math.Ceiling(CChosen.PointAt(n2).X) + Math.Floor(CChosen.PointAt(n2).X)) / 2,
                     (Math.Ceiling(CChosen.PointAt(n2).Y) + Math.Floor(CChosen.PointAt(n2).Y)) / 2, (Math.Ceiling(CChosen.PointAt(n2).Z) + Math.Floor(CChosen.PointAt(n2).Z)) / 2);
 
-                Line NLine = new Line(PtChosen, CorCVS[n1].TangentAt(n2) * Radii);
+                Line NLine = new Line(PtChosen, CorCVS[n1].TangentAt(n2)* Radii);
                 Vector3d DirVec = new Vector3d(NLine.PointAt(1) - NLine.PointAt(0));
                 var DirvecU = DirVec;
                 var DirvecD = DirVec;
@@ -390,14 +390,53 @@ namespace TOtracing
 
                 var PtU = PtChosen + DirvecU;
                 var PtD = PtChosen + DirvecD;
+                PtU = PtU.PtRound();
+                PtD = PtD.PtRound();
+
+                //if (PtU.X < 0 || PtD.X < 0 || PtU.Y < 0 || PtD.Y < 0 || PtD.Z < 0 || PtU.Z < 0)
+                //    continue;
 
                 var IdU = FindSenMatIndex(PtU, SensMatrix);
                 var IdD = FindSenMatIndex(PtD, SensMatrix);
+               
+                if (IdU != null)
+                {
+                    if (TraceMatrix[(Int32)IdU.Item1, (Int32)IdU.Item2] == 1)
+                    {
+                        var NeiPts = Exploreneighbours(PtU, SensMatrix.GetLength(0), SensMatrix.GetLength(1), 0);
+                        double SumCost =0;
+                        for (int i = 0; i < NeiPts.Count; i++)
+                        {
+                            double Cost = ComputeCostForNeighbours(PtU, Vector3d.Zero, NeiPts[i], SensMatrix, MatINFO, TraceMatrix);
+                            SumCost += Cost;
+                        }
+                        if (SumCost == 0)
+                            goto here;
+                        return PtU;
+                    }
+                        
+                }
+                
+                here:
 
-                //if (IdD == null)
-                //    continue;
-                //else
+                if (IdD != null)
+                {
+                    if (TraceMatrix[(Int32)IdD.Item1, (Int32)IdD.Item2] == 1)
+                    {
+                        var NeiPts = Exploreneighbours(PtD, SensMatrix.GetLength(0), SensMatrix.GetLength(1), 0);
 
+                        double SumCost = 0;
+                        for (int i = 0; i < NeiPts.Count; i++)
+                        {
+                            double Cost = ComputeCostForNeighbours(PtD, Vector3d.Zero, NeiPts[i], SensMatrix, MatINFO, TraceMatrix);
+                            SumCost += Cost;
+                        }
+                        if (SumCost == 0)
+                            continue;
+                        return PtD;
+                    }
+                        
+                }
             }
 
 
@@ -424,10 +463,7 @@ namespace TOtracing
 
 
 
-            int randomIndex = random.Next(0, ACCpt.Count - 1);
 
-            Pts = ACCpt[randomIndex];
-            return Pts;
 
         }
     }

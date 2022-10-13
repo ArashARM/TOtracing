@@ -74,6 +74,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions.cs" />
     <Compile Include="MatlabRunner.cs" />
     <Compile Include="PtFunctions.cs" />
     <Compile Include="TOtracingCode.cs" />

@@ -95,22 +95,23 @@ namespace TOtracing
                 if (counter != 0)
                 {
                     //Spt = new Point3d(299, 1, 0);
-                    Spt = PtFunctions.ExplorTracPt(MatInfo, MatrixS, TraceMatrix, Math.Sqrt(2));
+                    Spt = PtFunctions.ExplorTracPt(CurveList, MatrixS, TraceMatrix, MatInfo);
                 }
                 List<NurbsCurve> CCuve = PtFunctions.ParTrace(MatrixS, MatInfo, Spt, TraceMatrix, 1, Math.Sqrt(2), AllPts);
                 V = PtFunctions.ComputeVol2d(TraceMatrix);
 
                 CorCVS.AddRange(CCuve);
                 Interval inter = new Interval(0, 1);
-                foreach (var curve in Curve.JoinCurves(CorCVS))
+                var crvs = Curve.JoinCurves(CCuve);
+                foreach (var curve in crvs)
                 {
                    var A = curve.ToNurbsCurve();
                     A.Domain = inter;
                     CurveList.Add(A);
                 }
 
-                NurbsCurve CCC = Curve.JoinCurves(CorCVS)[0].ToNurbsCurve();
-                if (V >=10000)
+                
+                if (V >=20000)
                     break;
                 counter++;
             }
