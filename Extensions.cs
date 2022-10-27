@@ -121,7 +121,6 @@ namespace Extensions
 
     }
 
-
     public static class LineExtensions
     {
         public static double ParalelPoint(this Rhino.Geometry.Line line)
@@ -483,6 +482,7 @@ namespace Extensions
 
     public static class DoubleExtensions
     {
+      
 
 
         public static string ToS(this double num, int dec = 3)
@@ -500,6 +500,15 @@ namespace Extensions
     }
     public static class IntExtensions
     {
+        public static int n(this int[,] matrix)
+        {
+            return matrix.GetLength(0);
+        }
+        public static int m(this int[,] matrix)
+        {
+            return matrix.GetLength(1);
+        }
+
         public static string ToS(this int num, int dec = 3)
         {
             string deci = "0";

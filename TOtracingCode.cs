@@ -13,6 +13,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using Accord.Math;
 
+
 // In order to load the result of this wizard, you will also need to
 // add the output bin/ folder of this project to the list of loaded
 // folder in Grasshopper.
@@ -42,7 +43,11 @@ namespace TOtracing
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             //pManager.AddTextParameter("SensMatDir", "SensMatDir", "Senstivity Matrix Directory", GH_ParamAccess.item);
-            pManager.AddNumberParameter("INT","Int","INt", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("Xlength", "X", "X", GH_ParamAccess.item, 300);
+            pManager.AddIntegerParameter("Ylength", "Y", "Y", GH_ParamAccess.item, 100);
+            pManager.AddIntegerParameter("Iteration", "iter", "iter", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Volfrac", "V", "Volume Fraction", GH_ParamAccess.item);
+
         }
 
         /// <summary>
@@ -62,65 +67,27 @@ namespace TOtracing
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            //string path = "SenDire";
-            List<NurbsCurve> CorCVS = new List<NurbsCurve>();
-            double sss = 0;
-            var MatrixS = MatlabRunner.ReadMatrix(print: false);
-            PtFunctions.PrintMatrix2(MatrixS);
-            DA.GetData(0, ref sss);
+            List<NurbsCurve> Curves = new List<NurbsCurve>();
+            int x = 0, y = 0;
+            double X = 0, Y = 0;
 
-            List<Tuple<Tuple<double, double>, Point3d>> MatInfo = PtFunctions.MatToLoc2D(MatrixS, out List<Point3d> AllPts);
+            int iteration = 0;
+            double VolumeFraction = 0;
 
-            Point3d Spt = new Point3d(0.5, 99.5, 0);
-            int[,] TraceMatrix = new int[MatrixS.GetLength(0), MatrixS.GetLength(1)];
-            double V = 0;
-            int counter = 0;
-            List<NurbsCurve> CurveList = new List<NurbsCurve>();
-            //List<NurbsCurve> CCuve = PtFunctions.ParTrace(MatrixS, MatInfo, Spt, TraceMatrix, 1, Math.Sqrt(2));
-            while (true)
-            {
-                //if (counter > 2)
-                //    break;
-                //if (counter != 0)
-                //{
-                //    Spt = new Point3d(1, 0, 0);
-                //    //Spt = PtFunctions.ExplorTracPt(MatInfo, MatrixS, TraceMatrix, Math.Sqrt(2));
-                //}
+            DA.GetData(0, ref x);
+            DA.GetData(1, ref y);
+            DA.GetData(2, ref iteration);
+            DA.GetData(3, ref VolumeFraction);
+            X = x;
+            Y = y;
+            PtFunctions TopOpt = new PtFunctions();
+            TopOpt.MatFEM(x, y, iteration, VolumeFraction, out Curves);
 
-                //if (counter == 1)
-                //{
-                //    Spt = new Point3d(0, 0, 0);
-                //    //Spt = PtFunctions.ExplorTracPt(MatInfo, MatrixS, TraceMatrix, Math.Sqrt(2));
-                //}
-                if (counter != 0)
-                {
-                    //Spt = new Point3d(299, 1, 0);
-                    Spt = PtFunctions.ExplorTracPt(CurveList, MatrixS, TraceMatrix, MatInfo);
-                }
-                List<NurbsCurve> CCuve = PtFunctions.ParTrace(MatrixS, MatInfo, Spt, TraceMatrix, 1, Math.Sqrt(2), AllPts);
-                V = PtFunctions.ComputeVol2d(TraceMatrix);
-
-                CorCVS.AddRange(CCuve);
-                Interval inter = new Interval(0, 1);
-                var crvs = Curve.JoinCurves(CCuve);
-                foreach (var curve in crvs)
-                {
-                   var A = curve.ToNurbsCurve();
-                    A.Domain = inter;
-                    CurveList.Add(A);
-                }
-
-                
-                if (V >=20000)
-                    break;
-                counter++;
-            }
-
-
-            DA.SetDataList(0, CurveList);
-
+            DA.SetDataList(0, Curves);
 
         }
+
+
 
         /// <summary>
         /// Provides an Icon for every component that will be visible in the User Interface.
@@ -147,5 +114,5 @@ namespace TOtracing
         }
     }
 
-  
+
 }
