@@ -482,9 +482,6 @@ namespace Extensions
 
     public static class DoubleExtensions
     {
-      
-
-
         public static string ToS(this double num, int dec = 3)
         {
             string deci = "0";
@@ -522,6 +519,40 @@ namespace Extensions
             return num.ToString(deci);
         }
     }
+
+
+    public static class ArrayExtensions
+    {
+        /// <summary>
+        /// Sets edge values of the matrix to the given value. 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param matrix to be changed="matrix"></param>
+        /// <param value to be setted="value"></param>
+        /// <param edge thickness of the matrix to be changed ="thickness"></param>
+        /// <returns> void</returns>
+        public static void SetEdges<T>(this T[,] matrix, T value, int thickness = 1)
+        {
+            if (2 * thickness > matrix.GetLength(0) || 2 * thickness > matrix.GetLength(1))
+                return;
+            else
+            {
+                var rowVector = Vector.Create(matrix.GetLength(1), value);
+                var colVector = Vector.Create(matrix.GetLength(0), value);
+
+                for (int i = 0; i < thickness; i++)
+                {
+                    matrix = matrix.SetRow(i, rowVector);
+                    matrix = matrix.SetRow(matrix.GetLength(0) - i - 1, rowVector);
+                    matrix = matrix.SetColumn(i, colVector);
+                    matrix = matrix.SetColumn(matrix.GetLength(1) - i - 1, colVector);
+                }
+            }
+
+            return;
+        }
+    }
+
 }
 
 
