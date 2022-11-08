@@ -17,6 +17,8 @@ using MathWorks.MATLAB.Types;
 using Accord.Math;
 using System.Xml;
 using MathNet.Numerics;
+using Accord.Math.Geometry;
+using Line = Rhino.Geometry.Line;
 
 namespace TOtracing
 {
@@ -29,7 +31,10 @@ namespace TOtracing
         Tuple<int, int> MinIdx = new Tuple<int, int>(0, 0);
         private Point3d Spt;
         private int[,] TraceMat;
+        double[,] SensMatrix;
         private Vector3d unitX = Vector3d.XAxis;
+        List<Tuple<Point3d, double>> BoundarySens = new List<Tuple<Point3d, double>>();
+
         public void MatFEM(double x, double y, int iter, double volfrac, out List<NurbsCurve> Curves)
         {
             Curves = new List<NurbsCurve>();
@@ -41,6 +46,7 @@ namespace TOtracing
             using (dynamic matlab = MATLABEngine.StartMATLAB())
             {
                 double[,] resultMat;
+
                 resultMat = matlab.IntTop88(x, y, 0.5, 3.0, 3.5, 1.0);
                 double[,] sense = ParticleTrace(resultMat, volfrac, out Curves);
 
@@ -50,8 +56,6 @@ namespace TOtracing
                     sense = ParticleTrace(resultMat, volfrac, out Curves);
                     counter++;
                 }
-
-
             }
         }
 
@@ -59,13 +63,14 @@ namespace TOtracing
         {
             //string path = "SenDire";
             List<NurbsCurve> CorCVS = new List<NurbsCurve>();
+            BoundarySens = new List<Tuple<Point3d, double>>();
 
-            int maxV = x * y;
-            double V = maxV * volfrac;
+            int maxV = (x+2) * (y+2);
+            double Volume = maxV * volfrac;
+            double V =0;
+            SensMatrix = MatToLoc2D(SensMat);
 
-            double[,] PTSenseMat = MatToLoc2D(SensMat);
-
-            MinIdx = PTSenseMat.ArgMin();
+            MinIdx = SensMatrix.ArgMin();
 
             Spt = new Point3d(MinIdx.Item1, MinIdx.Item2, 0);
 
@@ -78,14 +83,15 @@ namespace TOtracing
             {
                 if (counter != 0)
                 {
-                    //Spt = new Point3d(299, 1, 0);
-                    //Spt = ExplorTracPt(CurveList, SensMat, TraceMat, PTMat);
+                    Spt = BoundarySens[BoundarySens.Count - 1].Item1;
+                    BoundarySens.RemoveAt(BoundarySens.Count - 1);
                 }
-                List<NurbsCurve> CCuve = SubParTrace(PTSenseMat, Spt, 1);
+                List<NurbsCurve> CCuve = SubParTrace(Spt, 1);
                 V = TraceMat.Sum();
 
                 CorCVS.AddRange(CCuve);
 
+                
                 Interval inter = new Interval(0, 1);
                 var crvs = Curve.JoinCurves(CCuve);
                 foreach (var curve in crvs)
@@ -94,9 +100,7 @@ namespace TOtracing
                     A.Domain = inter;
                     CurveList.Add(A);
                 }
-
-
-                if (V >= 55)
+                if (V >= Volume)
                     break;
                 counter++;
             }
@@ -144,13 +148,12 @@ namespace TOtracing
             return PTArr;
         }
 
-        private List<NurbsCurve> SubParTrace(double[,] SensMatrix, Point3d SourcePt, double Radii)
+        private List<NurbsCurve> SubParTrace(Point3d SourcePt, double Radii)
         {
             List<NurbsCurve> CoreCurves = new List<NurbsCurve>();
-
+            List<Tuple<Point3d, double>> BoundarySen = new List<Tuple<Point3d, double>>();
             bool Pathfound = false;
             int counter = 0;
-            List<Tuple<int, int, double>> BoundarySens = new List<Tuple<int, int, double>>();
 
             while (!Pathfound)
             {
@@ -175,43 +178,66 @@ namespace TOtracing
                 Line L1 = new Line(SourcePt, SourcePt + new Point3d(MinIdx.Item1 - 1, MinIdx.Item2 - 1, 0));
                 NurbsCurve C1 = L1.ToNurbsCurve(); C1.Reparameterize();
                 CoreCurves.Add(C1);
-                var TurnAngle = Vector3d.VectorAngle(L1.UnitTangent, unitX) * 180.0 / Math.PI;
-                var n1 = L1.Direction;
-                var n2 = L1.Direction;
-
-                n1.Rotate(Math.PI / 2.0, Vector3d.ZAxis);
-                n2.Rotate(-Math.PI / 2.0, Vector3d.ZAxis);
-                if ((int)TurnAngle % 90 == 0)
-                {
-                    BoundarySens.Add(new Tuple<int, int, double>((int)(L1.ToX + n1.X), (int)(L1.ToY + n1.Y), SensMatrix[(int)(L1.ToX + n1.X), (int)(L1.ToY + n1.Y)]));
-                    BoundarySens.Add(new Tuple<int, int, double>((int)(L1.ToX + n2.X), (int)(L1.ToY + n2.Y), SensMatrix[(int)(L1.ToX + n2.X), (int)(L1.ToY + n2.Y)]));
-                }
-                else
-                {
-                    BoundarySens.Add(new Tuple<int, int, double>((int)(L1.ToX + n1.X), (int)(L1.ToY + n1.Y), SensMatrix[(int)L1.ToX, (int)L1.ToY]));
-                    BoundarySens.Add(new Tuple<int, int, double>((int)(L1.ToX + n2.X), (int)(L1.ToY + n2.Y), SensMatrix[(int)L1.ToX, (int)L1.ToY]));
-                    BoundarySens.Add(new Tuple<int, int, double>((int)((L1.ToX + L1.FromX) / 2 + n1.X / 2), (int)((L1.ToY + L1.FromY) / 2 + n1.Y / 2),
-                        SensMatrix[(int)((L1.ToX + L1.FromX) / 2 + n1.X / 2), (int)((L1.ToY + L1.FromY) / 2 + n1.Y / 2)]));
-                    BoundarySens.Add(new Tuple<int, int, double>((int)((L1.ToX + L1.FromX) / 2 + n2.X / 2), (int)((L1.ToY + L1.FromY) / 2 + n2.Y / 2),
-                        SensMatrix[(int)((L1.ToX + L1.FromX) / 2 + n2.X / 2), (int)((L1.ToY + L1.FromY) / 2 + n2.Y / 2)]));
-                }
-                
 
                 TraceMat[(int)L1.FromX, (int)L1.FromY] = 1;
                 TraceMat[(int)L1.ToX, (int)L1.ToY] = 1;
 
+                BoundarySen.AddRange(SetBoundaryPoints(L1, 1));
+
                 SourcePt = C1.PointAtEnd;
                 counter++;
-
             }
+            BoundarySens.AddRange(BoundarySen);
+            BoundarySens = BoundarySens.OrderByDescending(x => x.Item2).ToList();
             return CoreCurves;
         }
 
-        private void SetBoundaryPoints(Line line, int thickness)
+        private List<Tuple<Point3d, double>> SetBoundaryPoints(Line line, int thickness)
         {
+            List<Tuple<Point3d, double>> BoundarySens = new List<Tuple<Point3d, double>>();
+            List<Tuple<Point3d, double>> FinalBoundarySens = new List<Tuple<Point3d, double>>();
 
 
+            var TurnAngle = Vector3d.VectorAngle(line.UnitTangent, unitX) * 180.0 / Math.PI;
+            var n1 = line.Direction;
+            var n2 = line.Direction;
 
+            n1.Rotate(Math.PI / 2.0, Vector3d.ZAxis);
+            n2.Rotate(-Math.PI / 2.0, Vector3d.ZAxis);
+            for (int t = 1; t <= thickness + 1; t++)
+            {
+                List<int> x = new List<int>();
+                List<int> y = new List<int>();
+                x.Add((int)(line.ToX + t * n1.X)); y.Add((int)(line.ToY + t * n1.Y));
+                x.Add((int)(line.ToX + t * n2.X)); y.Add((int)(line.ToY + t * n2.Y));
+                x.Add((int)((line.ToX + line.FromX) / 2 + t * n1.X / 2)); y.Add((int)((line.ToY + line.FromY) / 2 + t * n1.Y / 2));
+                x.Add((int)((line.ToX + line.FromX) / 2 + t * n2.X / 2)); y.Add((int)((line.ToY + line.FromY) / 2 + t * n2.Y / 2));
+                if ((int)TurnAngle % 90 == 0)
+                {
+                    for (int i = 0; i < x.Count - 2; i++)
+                        if (x[i]<TraceMat.GetLength(0) && y[i] < TraceMat.GetLength(1) && x[i] >=0 && y[i] >= 0 && TraceMat[x[i], y[i]] != 1)
+                        {
+                            if (t == thickness + 1)
+                                BoundarySens.Add(new Tuple<Point3d, double>(new Point3d(x[i], y[i], 0), SensMatrix[x[i], y[i]]));
+                            else
+                                TraceMat[x[i], y[i]] = 1;
+                        }
+                }
+                else
+                {
+                    for (int i = 0; i < x.Count; i++)
+                    {
+                        if (x[i] < TraceMat.GetLength(0) && y[i] < TraceMat.GetLength(1) && x[i] >= 0 && y[i] >= 0 && TraceMat[x[i], y[i]] != 1)
+                        {
+                            if (t == thickness + 1)
+                                BoundarySens.Add(new Tuple<Point3d, double>(new Point3d(x[i], y[i], 0), SensMatrix[x[i], y[i]]));
+                            else
+                                TraceMat[x[i], y[i]] = 1;
+                        }
+                    }
+                }
+            }
+            return BoundarySens;
         }
 
         private T[,] GetNeighbours<T>(T[,] Matrix, Point3d idx)
