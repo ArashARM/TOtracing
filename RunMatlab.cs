@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using Grasshopper.Kernel;
-using Rhino.Geometry;
 using MathWorks.MATLAB.Engine;
+using MathWorks.MATLAB.Exceptions;
 using MathWorks.MATLAB.Types;
+
 
 namespace TOtracing
 {
@@ -14,17 +14,21 @@ namespace TOtracing
         /// Initializes a new instance of the RunMatlab class.
         /// </summary>
         public RunMatlab()
-          : base("RunMatlab", "Nickname",
+          : base("RunMatlab", "RunMatlab",
               "Description",
-              "Category", "Subcategory")
+             "TO", "Matlab")
         {
         }
+
+        //private MATLABEngine matlab = MATLABEngine.StartMATLAB();
+
 
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddBooleanParameter("", "", "", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -40,6 +44,36 @@ namespace TOtracing
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            bool startMatlab = false;
+            DA.GetData(0, ref startMatlab);
+
+            //if (startMatlab)
+            //    matlab = MATLABEngine.StartMATLAB();
+            //else if (!startMatlab)
+            //    matlab.Dispose();
+            //MATLABEngine.
+            //MATLABEngine.TerminateEngineClient();
+            //MATLABEngine.ConnectMATLAB("TopOpt");
+            Console.Write("Starting MATLAB... ");
+            string[] names = MATLABEngine.FindMATLAB();
+            if (names.Length == 0)
+                Console.Error.WriteLine("No shared MATLAB sessions found.");
+            string myMATLAB = names[0]; // Pick the first
+            try
+            {
+                using (dynamic matlab = MATLABEngine.ConnectMATLAB(myMATLAB))
+                {
+                    matlab.disp(new RunOptions(nargout: 0), "Hello, shared MATLAB.");
+                }
+            }
+            catch (MATLABNotAvailableException)
+            {
+                Console.Error.WriteLine("Could not connect to MATLAB engine.");
+            }
+
+            // Call when you no longer need MATLAB Engine in your application.
+            //MATLABEngine.TerminateEngineClient();
+
         }
 
         /// <summary>

@@ -119,6 +119,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CheckMatlab.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="MatlabRunner.cs" />
     <Compile Include="PtFunctions.cs" />

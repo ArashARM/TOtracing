@@ -26,37 +26,39 @@ namespace TOtracing
     {
 
         public static double r_min = 1e-6;
-        private int x, y;
+        private int x, y; //n,m
         private List<Point3d> AllPts;
         Tuple<int, int> MinIdx = new Tuple<int, int>(0, 0);
         private Point3d Spt;
         private int[,] TraceMat;
-        double[,] SensMatrix;
+        private double[,] TopMat;
+        private double[,] SensMatrix;
+        private double[,] resultMat;
         private Vector3d unitX = Vector3d.XAxis;
         List<Tuple<Point3d, double>> BoundarySens = new List<Tuple<Point3d, double>>();
 
-        public void MatFEM(double x, double y, int iter, double volfrac, out List<NurbsCurve> Curves)
+        public void MatFEM(double x, double y, int iter, double volfrac, out List<NurbsCurve> Curves, out double[,] TopologyMat)
         {
             Curves = new List<NurbsCurve>();
             int counter = 1;
 
             this.x = (int)x;
             this.y = (int)y;
+            string[] names = MATLABEngine.FindMATLAB();
 
-            using (dynamic matlab = MATLABEngine.StartMATLAB())
+            using (dynamic matlab = MATLABEngine.ConnectMATLAB(names[0]))
             {
-                double[,] resultMat;
-
                 resultMat = matlab.IntTop88(x, y, 0.5, 3.0, 3.5, 1.0);
                 double[,] sense = ParticleTrace(resultMat, volfrac, out Curves);
 
                 while (counter < iter)
                 {
-                    resultMat = matlab.IterTop88(sense, x, y, 0.5, 3.0, 3.5, 1.0);
+                    resultMat = matlab.IterTop88(resultMat, x, y, 0.5, 3.0, 3.5, 1.0);
                     sense = ParticleTrace(resultMat, volfrac, out Curves);
                     counter++;
                 }
             }
+            TopologyMat = TopMat;
         }
 
         private double[,] ParticleTrace(double[,] SensMat, double volfrac, out List<NurbsCurve> CurveList)
@@ -65,9 +67,9 @@ namespace TOtracing
             List<NurbsCurve> CorCVS = new List<NurbsCurve>();
             BoundarySens = new List<Tuple<Point3d, double>>();
 
-            int maxV = (x+2) * (y+2);
+            int maxV = (x + 2) * (y + 2);
             double Volume = maxV * volfrac;
-            double V =0;
+            double V = 0;
             SensMatrix = MatToLoc2D(SensMat);
 
             MinIdx = SensMatrix.ArgMin();
@@ -91,7 +93,7 @@ namespace TOtracing
 
                 CorCVS.AddRange(CCuve);
 
-                
+
                 Interval inter = new Interval(0, 1);
                 var crvs = Curve.JoinCurves(CCuve);
                 foreach (var curve in crvs)
@@ -106,6 +108,9 @@ namespace TOtracing
             }
 
             var TraceMatrix = DenseSet(TraceMat);
+            TopMat = TraceMatrix.Get(1,x+1 ,1 ,y+1);
+            resultMat = LocToMat2D(TraceMatrix);
+
 
             return TraceMatrix;
 
@@ -126,6 +131,7 @@ namespace TOtracing
                         TrMat[i, j] = r_min;
                 }
             }
+
             return TrMat;
         }
 
@@ -140,6 +146,26 @@ namespace TOtracing
                 for (int j = 0; j < y; j++)
                 {
                     PTArr[i + 1, j + 1] = SensMatrix[y - 1 - j, i];
+                    Point3d MatLoc = new Point3d(y - 1 - j, i, 0);
+                    //LocPt = MatLoc + new Point3d(0.5, 0.5, 0);
+                    AllPts.Add(MatLoc);
+                }
+            }
+            return PTArr;
+        }
+        private double[,] LocToMat2D(double[,] SensMatrix)
+        {
+            AllPts = new List<Point3d>();
+
+            var Sen = SensMatrix.Get(1, x + 1, 1, y + 1);
+
+            double[,] PTArr = new double[y, x];
+
+            for (int i = 0; i < y; i++)
+            {
+                for (int j = 0; j < x; j++)
+                {
+                    PTArr[i, j] = SensMatrix[x - 1 - j, i];
                     Point3d MatLoc = new Point3d(y - 1 - j, i, 0);
                     //LocPt = MatLoc + new Point3d(0.5, 0.5, 0);
                     AllPts.Add(MatLoc);
@@ -215,7 +241,7 @@ namespace TOtracing
                 if ((int)TurnAngle % 90 == 0)
                 {
                     for (int i = 0; i < x.Count - 2; i++)
-                        if (x[i]<TraceMat.GetLength(0) && y[i] < TraceMat.GetLength(1) && x[i] >=0 && y[i] >= 0 && TraceMat[x[i], y[i]] != 1)
+                        if (x[i] < TraceMat.GetLength(0) && y[i] < TraceMat.GetLength(1) && x[i] >= 0 && y[i] >= 0 && TraceMat[x[i], y[i]] != 1)
                         {
                             if (t == thickness + 1)
                                 BoundarySens.Add(new Tuple<Point3d, double>(new Point3d(x[i], y[i], 0), SensMatrix[x[i], y[i]]));

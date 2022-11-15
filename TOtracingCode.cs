@@ -56,6 +56,7 @@ namespace TOtracing
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddCurveParameter("PToutput", "PToutput", "Particle tracing output", GH_ParamAccess.list);
+            pManager.AddIntegerParameter("TopologyMap", "TMap", "", GH_ParamAccess.list);
             //pManager.AddNumberParameter("Senvval", "Senvval", "Senvval", GH_ParamAccess.list);
             //pManager.AddPointParameter("Pts", "Pts", "Pts", GH_ParamAccess.list);
         }
@@ -73,7 +74,7 @@ namespace TOtracing
 
             int iteration = 0;
             double VolumeFraction = 0;
-
+            double[,] mat;
             DA.GetData(0, ref x);
             DA.GetData(1, ref y);
             DA.GetData(2, ref iteration);
@@ -81,10 +82,10 @@ namespace TOtracing
             X = x;
             Y = y;
             PtFunctions TopOpt = new PtFunctions();
-            TopOpt.MatFEM(x, y, iteration, VolumeFraction, out Curves);
+            TopOpt.MatFEM(x, y, iteration, VolumeFraction, out Curves,out mat);
 
             DA.SetDataList(0, Curves);
-
+            DA.SetDataList(1, mat);
         }
 
 
