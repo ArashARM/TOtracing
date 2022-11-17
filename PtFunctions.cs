@@ -19,6 +19,7 @@ using System.Xml;
 using MathNet.Numerics;
 using Accord.Math.Geometry;
 using Line = Rhino.Geometry.Line;
+using static Extensions.PointExtensions;
 
 namespace TOtracing
 {
@@ -26,6 +27,7 @@ namespace TOtracing
     {
 
         public static double r_min = 1e-6;
+        public int m_border = 1;
         private int x, y; //n,m
         private List<Point3d> AllPts;
         Tuple<int, int> MinIdx = new Tuple<int, int>(0, 0);
@@ -67,17 +69,19 @@ namespace TOtracing
             List<NurbsCurve> CorCVS = new List<NurbsCurve>();
             BoundarySens = new List<Tuple<Point3d, double>>();
 
-            int maxV = (x + 2) * (y + 2);
+            int maxV = (x + 2 * m_border) * (y + 2 * m_border);
+
             double Volume = maxV * volfrac;
             double V = 0;
-            SensMatrix = MatToLoc2D(SensMat);
+
+            SensMatrix = SensMat.MatToLoc2D(x, y, m_border);
 
             MinIdx = SensMatrix.ArgMin();
 
             Spt = new Point3d(MinIdx.Item1, MinIdx.Item2, 0);
 
-            TraceMat = new int[x + 2, y + 2];
-            TraceMat.SetEdges(1);
+            TraceMat = new int[x + 2 * m_border, y + 2 * m_border];
+            TraceMat.SetEdges(m_border);
 
             int counter = 0;
             CurveList = new List<NurbsCurve>();
@@ -108,8 +112,8 @@ namespace TOtracing
             }
 
             var TraceMatrix = DenseSet(TraceMat);
-            TopMat = TraceMatrix.Get(1,x+1 ,1 ,y+1);
-            resultMat = LocToMat2D(TraceMatrix);
+            TopMat = TraceMatrix.GetSubMatrix(1, x, 1, y);
+            resultMat = TraceMatrix.LocToMat2D(x, y);
 
 
             return TraceMatrix;
@@ -131,47 +135,7 @@ namespace TOtracing
                         TrMat[i, j] = r_min;
                 }
             }
-
             return TrMat;
-        }
-
-        private double[,] MatToLoc2D(double[,] SensMatrix)
-        {
-            AllPts = new List<Point3d>();
-
-            double[,] PTArr = new double[x + 2, y + 2];
-
-            for (int i = 0; i < x; i++)
-            {
-                for (int j = 0; j < y; j++)
-                {
-                    PTArr[i + 1, j + 1] = SensMatrix[y - 1 - j, i];
-                    Point3d MatLoc = new Point3d(y - 1 - j, i, 0);
-                    //LocPt = MatLoc + new Point3d(0.5, 0.5, 0);
-                    AllPts.Add(MatLoc);
-                }
-            }
-            return PTArr;
-        }
-        private double[,] LocToMat2D(double[,] SensMatrix)
-        {
-            AllPts = new List<Point3d>();
-
-            var Sen = SensMatrix.Get(1, x + 1, 1, y + 1);
-
-            double[,] PTArr = new double[y, x];
-
-            for (int i = 0; i < y; i++)
-            {
-                for (int j = 0; j < x; j++)
-                {
-                    PTArr[i, j] = SensMatrix[x - 1 - j, i];
-                    Point3d MatLoc = new Point3d(y - 1 - j, i, 0);
-                    //LocPt = MatLoc + new Point3d(0.5, 0.5, 0);
-                    AllPts.Add(MatLoc);
-                }
-            }
-            return PTArr;
         }
 
         private List<NurbsCurve> SubParTrace(Point3d SourcePt, double Radii)
@@ -187,8 +151,8 @@ namespace TOtracing
                 if (CoreCurves.Count != 0)
                     PreDir = CoreCurves[CoreCurves.Count - 1].TangentAtStart;
 
-                int[,] NeighbourMat = GetNeighbours(TraceMat, SourcePt);
-                double[,] LocalSens = GetNeighbours(SensMatrix, SourcePt);
+                int[,] NeighbourMat = TraceMat.GetNeighbours(SourcePt);
+                double[,] LocalSens = SensMatrix.GetNeighbours(SourcePt);
 
                 //Calculate local costs
                 var CostMat = ComputeCostForNeighbours(NeighbourMat, LocalSens, PreDir);
@@ -208,7 +172,7 @@ namespace TOtracing
                 TraceMat[(int)L1.FromX, (int)L1.FromY] = 1;
                 TraceMat[(int)L1.ToX, (int)L1.ToY] = 1;
 
-                BoundarySen.AddRange(SetBoundaryPoints(L1, 1));
+                BoundarySen.AddRange(SetBoundaryPoints(L1, 2));
 
                 SourcePt = C1.PointAtEnd;
                 counter++;
@@ -223,82 +187,104 @@ namespace TOtracing
             List<Tuple<Point3d, double>> BoundarySens = new List<Tuple<Point3d, double>>();
             List<Tuple<Point3d, double>> FinalBoundarySens = new List<Tuple<Point3d, double>>();
 
-
             var TurnAngle = Vector3d.VectorAngle(line.UnitTangent, unitX) * 180.0 / Math.PI;
+
+            var pt1 = new Point3d(0,0,0);
+            var pt2 = new Point3d(0,0,0);
+
+            var pt3 = pt1 /3;
+
+            //Get Line left and right sides
             var n1 = line.Direction;
             var n2 = line.Direction;
-
             n1.Rotate(Math.PI / 2.0, Vector3d.ZAxis);
             n2.Rotate(-Math.PI / 2.0, Vector3d.ZAxis);
+
+            //Fill blocks with thickness value and set tracable boundary 
             for (int t = 1; t <= thickness + 1; t++)
             {
-                List<int> x = new List<int>();
-                List<int> y = new List<int>();
-                x.Add((int)(line.ToX + t * n1.X)); y.Add((int)(line.ToY + t * n1.Y));
-                x.Add((int)(line.ToX + t * n2.X)); y.Add((int)(line.ToY + t * n2.Y));
-                x.Add((int)((line.ToX + line.FromX) / 2 + t * n1.X / 2)); y.Add((int)((line.ToY + line.FromY) / 2 + t * n1.Y / 2));
-                x.Add((int)((line.ToX + line.FromX) / 2 + t * n2.X / 2)); y.Add((int)((line.ToY + line.FromY) / 2 + t * n2.Y / 2));
+                List<Point2i> list = new List<Point2i>();
+
+                //Find endpoint locations of path and get possible thickness directions and length
+                //                                  X                                        Y
+                //                         --------------------                ----------------------------
+                list.Add(new Point2i((int)(line.ToX + t * n1.X), (int)(line.ToY + t * n1.Y)));
+                list.Add(new Point2i((int)(line.ToX + t * n2.X), (int)(line.ToY + t * n2.Y)));
+                list.Add(new Point2i((int)(line.MidPoint().X + t * n1.X / 2), (int)(line.MidPoint().Y + t * n1.Y / 2)));
+                list.Add(new Point2i((int)(line.MidPoint().X + t * n2.X / 2), (int)(line.MidPoint().Y + t * n2.Y / 2)));
+
+                #region old
+                //List<int> xList = new List<int>();
+                //List<int> yList = new List<int>();
+                ////X                                                     //Y
+                //xList.Add((int)(line.ToX + t * n1.X)); yList.Add((int)(line.ToY + t * n1.Y));
+                //xList.Add((int)(line.ToX + t * n2.X)); yList.Add((int)(line.ToY + t * n2.Y));
+                //xList.Add((int)(line.MidPoint().X + t * n1.X / 2)); yList.Add((int)(line.MidPoint().Y + t * n1.Y / 2));
+                //xList.Add((int)(line.MidPoint().X + t * n2.X / 2)); yList.Add((int)(line.MidPoint().Y + t * n2.Y / 2));
+                #endregion
+
+                //Straight path operations
                 if ((int)TurnAngle % 90 == 0)
                 {
-                    for (int i = 0; i < x.Count - 2; i++)
-                        if (x[i] < TraceMat.GetLength(0) && y[i] < TraceMat.GetLength(1) && x[i] >= 0 && y[i] >= 0 && TraceMat[x[i], y[i]] != 1)
+                    for (int i = 0; i < list.Count - 2; i++)
+                        if (list[i].X < TraceMat.n() && list[i].Y < TraceMat.m() && list[i].X >= 0 && list[i].Y >= 0 && TraceMat[list[i].X, list[i].Y] != 1)
                         {
+                            //Set start boundary
                             if (t == thickness + 1)
-                                BoundarySens.Add(new Tuple<Point3d, double>(new Point3d(x[i], y[i], 0), SensMatrix[x[i], y[i]]));
+                                BoundarySens.Add(new Tuple<Point3d, double>(new Point3d(list[i].X, list[i].Y, 0), SensMatrix[list[i].X, list[i].Y]));
+                            //Fill all blocks in the radius range
                             else
-                                TraceMat[x[i], y[i]] = 1;
+                                TraceMat[list[i].X, list[i].Y] = 1;
                         }
                 }
+                //Diagonal path operations
                 else
                 {
-                    for (int i = 0; i < x.Count; i++)
+                    for (int i = 0; i < list.Count; i++)
                     {
-                        if (x[i] < TraceMat.GetLength(0) && y[i] < TraceMat.GetLength(1) && x[i] >= 0 && y[i] >= 0 && TraceMat[x[i], y[i]] != 1)
-                        {
+                        if (list[i].X < TraceMat.n() && list[i].Y < TraceMat.m() && list[i].X >= 0 && list[i].Y >= 0 && TraceMat[list[i].X, list[i].Y] != 1)
+                        {                      
+                            //Set start boundary
                             if (t == thickness + 1)
-                                BoundarySens.Add(new Tuple<Point3d, double>(new Point3d(x[i], y[i], 0), SensMatrix[x[i], y[i]]));
+                                BoundarySens.Add(new Tuple<Point3d, double>(new Point3d(list[i].X, list[i].Y, 0), SensMatrix[list[i].X, list[i].Y]));
+                            //Fill all blocks in the radius range
                             else
-                                TraceMat[x[i], y[i]] = 1;
+                                TraceMat[list[i].X, list[i].Y] = 1;
                         }
                     }
                 }
+
+                #region old
+                //if ((int)TurnAngle % 90 == 0)
+                //{
+                //    for (int i = 0; i < xList.Count - 2; i++)
+                //        if (xList[i] < TraceMat.n() && yList[i] < TraceMat.m() && xList[i] >= 0 && yList[i] >= 0 && TraceMat[xList[i], yList[i]] != 1)
+                //        {
+                //            if (t == thickness + 1)
+                //                BoundarySens.Add(new Tuple<Point3d, double>(new Point3d(xList[i], yList[i], 0), SensMatrix[xList[i], yList[i]]));
+                //            else
+                //                TraceMat[xList[i], yList[i]] = 1;
+                //        }
+                //}
+                ////Diagonal path operations
+                //else
+                //{
+                //    for (int i = 0; i < xList.Count; i++)
+                //    {
+                //        if (xList[i] < TraceMat.n() && yList[i] < TraceMat.m() && xList[i] >= 0 && yList[i] >= 0 && TraceMat[xList[i], yList[i]] != 1)
+                //        {
+                //            if (t == thickness + 1)
+                //                BoundarySens.Add(new Tuple<Point3d, double>(new Point3d(xList[i], yList[i], 0), SensMatrix[xList[i], yList[i]]));
+                //            else
+                //                TraceMat[xList[i], yList[i]] = 1;
+                //        }
+                //    }
+                //}
+                #endregion
+
             }
             return BoundarySens;
         }
-
-        private T[,] GetNeighbours<T>(T[,] Matrix, Point3d idx)
-        {
-            int i1 = (int)idx.X - 1;
-            int i2 = (int)idx.X + 1;
-            int j1 = (int)idx.Y - 1;
-            int j2 = (int)idx.Y + 1;
-
-            T[,] NeighbourMat = Matrix.Get(i1, i2 + 1, j1, j2 + 1);
-            return NeighbourMat;
-        }
-
-        //private double[,] GetNeighbours(double[,] Matrix, Point3d idx)
-        //{
-        //    int i1 = (int)idx.X - 1;
-        //    int i2 = (int)idx.X + 1;
-        //    int j1 = (int)idx.Y - 1;
-        //    int j2 = (int)idx.Y + 1;
-
-        //    double[,] NeighbourMat = Matrix.Get(i1, i2 + 1, j1, j2 + 1);
-        //    return NeighbourMat;
-        //}
-
-
-        //private int[,] GetNeighbours(int[,] Matrix, Point3d idx)
-        //{
-        //    int i1 = (int)idx.X - 1;
-        //    int i2 = (int)idx.X + 1;
-        //    int j1 = (int)idx.Y - 1;
-        //    int j2 = (int)idx.Y + 1;
-
-        //    int[,] NeighbourMat = Matrix.Get(i1, i2 + 1, j1, j2 + 1);
-        //    return NeighbourMat;
-        //}
 
         private static double[,] ComputeCostForNeighbours(int[,] NeighbourMat, double[,] SensMatrix, Vector3d PreDir)
         {
@@ -306,9 +292,9 @@ namespace TOtracing
             //Trace Cost
             double[,] TraceCost = new double[NeighbourMat.GetLength(0), NeighbourMat.GetLength(1)];
 
-            for (int i = 0; i < NeighbourMat.GetLength(0); i++)
+            for (int i = 0; i < NeighbourMat.n(); i++)
             {
-                for (int j = 0; j < NeighbourMat.GetLength(1); j++)
+                for (int j = 0; j < NeighbourMat.m(); j++)
                 {
                     double alpha = 0;
                     if (i == 1 && j == 1)
@@ -348,22 +334,3 @@ namespace TOtracing
         }
     }
 }
-
-//private double[,,] MatToLoc3D(double[,] SensMatrix)
-//{
-//    AllPts = new List<Point3d>();
-//    double[,,] PTArr = new double[x, y, 1];
-
-//    for (int i = 0; i < x; i++)
-//    {
-//        for (int j = 0; j < y; j++)
-//        {
-//            double PtMat = SensMatrix[j, (x - 1) - i];
-//            Point3d MatLoc = new Point3d(j, (x - 1) - i, 0);
-//            //LocPt = MatLoc + new Point3d(0.5, 0.5, 0);
-//            PTArr[i, j, 0] = PtMat;
-//            AllPts.Add(MatLoc);
-//        }
-//    }
-//    return PTArr;
-//}
